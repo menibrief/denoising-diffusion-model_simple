@@ -4,6 +4,8 @@
 import torch
 import numpy as np
 
+device = ('cuda' if torch.cuda.is_available() else 'cpu')
+
 def make_beta_schedule(schedule='linear', n_timesteps=1000, start=1e-5, end=1e-2):
     if schedule == 'linear':
         betas = torch.linspace(start, end, n_timesteps)
@@ -40,7 +42,7 @@ def p_sample(model, x, t,alphas,betas,one_minus_alphas_bar_sqrt):
     # Factor to the model output
     eps_factor = ((1 - extract(alphas, t, x)) / extract(one_minus_alphas_bar_sqrt, t, x))
     # Model output
-    eps_theta = model(x, t)
+    eps_theta = model(x, t).to('cpu')
     # Final values
     mean = (1 / extract(alphas, t, x).sqrt()) * (x - (eps_factor * eps_theta))
     # Generate z
@@ -120,4 +122,4 @@ def noise_estimation_loss(model, x_0,alphas_bar_sqrt,one_minus_alphas_bar_sqrt,n
     # model input
     x = x_0 * a + e * am1
     output = model(x, t)
-    return (e - output).square().mean()
+    return (e.to(device) - output).square().mean()
