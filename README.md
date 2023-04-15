@@ -18,20 +18,6 @@ This is a simple guide to diffusion models.
 * GPU
 
 
-## The tutorial 📃
-
-
-On Medium:
-
-https://azad-wolf.medium.com/diffusion-models-made-easy-8414298ce4da
-
-
-On Substack:
-
-https://azadwolf.substack.com/p/diffusion-models-made-easy
-
-
-
 ## References 
 
 Sohl-Dickstein, J., Weiss, E. A., Maheswaranathan, N., & Ganguli, S. (2015). Deep unsupervised learning using nonequilibrium thermodynamics. arXiv preprint arXiv:1503.03585. 
