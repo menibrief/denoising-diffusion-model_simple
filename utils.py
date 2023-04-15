@@ -6,6 +6,7 @@ import numpy as np
 
 device = ('cuda' if torch.cuda.is_available() else 'cpu')
 
+
 def make_beta_schedule(schedule='linear', n_timesteps=1000, start=1e-5, end=1e-2):
     if schedule == 'linear':
         betas = torch.linspace(start, end, n_timesteps)
@@ -16,11 +17,13 @@ def make_beta_schedule(schedule='linear', n_timesteps=1000, start=1e-5, end=1e-2
         betas = torch.sigmoid(betas) * (end - start) + start
     return betas
 
+
 def extract(input, t, x):
     shape = x.shape
     out = torch.gather(input, 0, t.to(input.device))
     reshape = [t.shape[0]] + [1] * (len(shape) - 1)
     return out.reshape(*reshape)
+
 
 def q_posterior_mean_variance(x_0, x_t, t,posterior_mean_coef_1,posterior_mean_coef_2,posterior_log_variance_clipped):
     coef_1 = extract(posterior_mean_coef_1, t, x_0)
@@ -28,6 +31,7 @@ def q_posterior_mean_variance(x_0, x_t, t,posterior_mean_coef_1,posterior_mean_c
     mean = coef_1 * x_0 + coef_2 * x_t
     var = extract(posterior_log_variance_clipped, t, x_0)
     return mean, var
+
 
 def p_mean_variance(model, x, t):
     # Go through model
@@ -37,6 +41,8 @@ def p_mean_variance(model, x, t):
     var = torch.exp(log_var)
     return mean, log_var
 
+
+@torch.no_grad()
 def p_sample(model, x, t,alphas,betas,one_minus_alphas_bar_sqrt):
     t = torch.tensor([t])
     # Factor to the model output
@@ -52,16 +58,20 @@ def p_sample(model, x, t,alphas,betas,one_minus_alphas_bar_sqrt):
     sample = mean + sigma_t * z
     return (sample)
 
-def p_sample_loop(model, shape,n_steps,alphas,betas,one_minus_alphas_bar_sqrt):
+
+@torch.no_grad()
+def p_sample_loop(model, shape, n_steps, alphas, betas, one_minus_alphas_bar_sqrt):
     cur_x = torch.randn(shape)
     x_seq = [cur_x]
     for i in reversed(range(n_steps)):
-        cur_x = p_sample(model, cur_x, i,alphas,betas,one_minus_alphas_bar_sqrt)
+        cur_x = p_sample(model, cur_x, i, alphas, betas, one_minus_alphas_bar_sqrt)
         x_seq.append(cur_x)
     return x_seq
 
+
 def approx_standard_normal_cdf(x):
     return 0.5 * (1.0 + torch.tanh(torch.tensor(np.sqrt(2.0 / np.pi)) * (x + 0.044715 * torch.pow(x, 3))))
+
 
 def discretized_gaussian_log_likelihood(x, means, log_scales):
     # Assumes data is integers [0, 255] rescaled to [-1, 1]
@@ -77,9 +87,11 @@ def discretized_gaussian_log_likelihood(x, means, log_scales):
     log_probs = torch.where(x < -0.999, log_cdf_plus, torch.where(x > 0.999, log_one_minus_cdf_min, torch.log(torch.clamp(cdf_delta, min=1e-12))))
     return log_probs
 
+
 def normal_kl(mean1, logvar1, mean2, logvar2):
     kl = 0.5 * (-1.0 + logvar2 - logvar1 + torch.exp(logvar1 - logvar2) + ((mean1 - mean2) ** 2) * torch.exp(-logvar2))
     return kl
+
 
 def q_sample(x_0, t, alphas_bar_sqrt, one_minus_alphas_bar_sqrt ,noise=None):
     if noise is None:
@@ -87,6 +99,7 @@ def q_sample(x_0, t, alphas_bar_sqrt, one_minus_alphas_bar_sqrt ,noise=None):
     alphas_t = extract(alphas_bar_sqrt, t, x_0)
     alphas_1_m_t = extract(one_minus_alphas_bar_sqrt, t, x_0)
     return (alphas_t * x_0 + alphas_1_m_t * noise)
+
 
 def loss_variational(model, x_0,alphas_bar_sqrt, one_minus_alphas_bar_sqrt,posterior_mean_coef_1,posterior_mean_coef_2,posterior_log_variance_clipped,n_steps):
     batch_size = x_0.shape[0]
@@ -108,6 +121,7 @@ def loss_variational(model, x_0,alphas_bar_sqrt, one_minus_alphas_bar_sqrt,poste
     # At the first timestep return the decoder NLL, otherwise return KL(q(x_{t-1}|x_t,x_0) || p(x_{t-1}|x_t))
     output = torch.where(t == 0, decoder_nll, kl)
     return output.mean(-1)
+
 
 def noise_estimation_loss(model, x_0,alphas_bar_sqrt,one_minus_alphas_bar_sqrt,n_steps):
     batch_size = x_0.shape[0]
