@@ -7,7 +7,7 @@ This is a simple guide to diffusion models.
 
 ![diffusion-model image](diffusion.png)
 
-
+![diffusion-example in 2-d](2_d_diffusion.gif)
 
 
 ## Requirements
